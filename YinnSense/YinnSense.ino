@@ -5,11 +5,15 @@
 #include "ClosedCube_HDC1080.h"
 #include <MAX44009.h>
 #define PUBLISH_DELAY 15
+#define MEDICION_DELAY 150
 
 // Update these with values suitable for your network.
-byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xED };
-IPAddress server(192, 168, 0, 100);
+byte mac[]    = {  0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC };
+IPAddress server(192, 168, 1, 100);
 
+int pirPin = 3;
+int ledPin = 13;
+int calibrationTime = 30; 
 
 // Callback function header
 void callback(char* topic, byte* payload, unsigned int length);
@@ -23,10 +27,12 @@ MAX44009 light;
 char tempbuffer[5];
 char humidbuffer[5];
 char lumibuffer[5];
+char movbuffer[5];
 
 double Temperatura = 0;
 double Humedad = 0;
 double Luminosidad = 0;
+int Movimiento = 0;
 
 // Callback function
 void callback(char* topic, byte* payload, unsigned int length) {
@@ -46,6 +52,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
 void setup()
 {
   Serial.begin(9600);
+  
+  pinMode(pirPin, INPUT);
+  digitalWrite(pirPin, LOW);
+  pinMode(ledPin, OUTPUT);  
+  
   Ethernet.begin(mac);
   hdc1080.begin(0x40);
   light.begin();
@@ -65,16 +76,21 @@ void setup()
   }
 
   
+  
+
+  
 }
 
 void loop()
 {
   getTempHum(HDC1080_RESOLUTION_8BIT, HDC1080_RESOLUTION_8BIT);
-  delay(200);
+  delay(MEDICION_DELAY);
   getLuminosidad();
-  delay(200);
+  delay(MEDICION_DELAY);
+  getMovimiento(digitalRead(pirPin));
+  delay(MEDICION_DELAY);
   publishAll();
-  delay(200);
+  delay(MEDICION_DELAY);
   
   client.loop();
 }
@@ -85,6 +101,8 @@ void publishAll(){
   client.publish("sensores_internos/humedad", humidbuffer);
   delay(PUBLISH_DELAY);
   client.publish("sensores_internos/luminosidad", lumibuffer);
+  delay(PUBLISH_DELAY);
+  client.publish("sensores_internos/movimiento", movbuffer);
   delay(PUBLISH_DELAY);
 }
 
@@ -116,4 +134,23 @@ void getLuminosidad() {
   Serial.print("Flujo luminoso: ");
   Serial.print(lumibuffer);
   Serial.println(" lux");
+}
+
+void getMovimiento(uint8_t io){
+    int mov = 0; 
+
+   if(io == HIGH){
+    mov = 1;
+     digitalWrite(ledPin, HIGH);
+     }
+
+   if(io == LOW){ 
+    mov = 0;     
+     digitalWrite(ledPin, LOW);  //the led visualizes the sensors output pin state
+
+     
+     }
+
+   snprintf(movbuffer, 5, "%d", mov);
+   
 }

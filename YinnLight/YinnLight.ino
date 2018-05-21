@@ -7,7 +7,7 @@
 EthernetClient net;
 MQTTClient client;
 
-byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xFE };
+byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xFA };
 unsigned long lastMillis = 0;
 
 void connect() {
@@ -15,14 +15,14 @@ void connect() {
   Ethernet.begin(mac);
 
   Serial.print("\nconectando mqtt...");
-  while (!client.connect("YinnConnect", "intentando", "intentando")) {
+  while (!client.connect("YinnLight", "intentando", "intentando")) {
     Serial.print(".");
     delay(1000);
   }
 
   Serial.println("\nmqtt conectado!");
 
-  client.subscribe("actuadores/ventilador");
+  client.subscribe("actuadores/bombilla");
   // client.unsubscribe("/hello");
 }
 
