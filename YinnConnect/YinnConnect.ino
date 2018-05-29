@@ -7,14 +7,14 @@
 EthernetClient net;
 MQTTClient client;
 
-byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xFE };
+byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xFF };
 unsigned long lastMillis = 0;
 
 void connect() {
-  Serial.print("conectando red...");
+//  Serial.print("conectando red...");
   Ethernet.begin(mac);
 
-  Serial.print("\nconectando mqtt...");
+//  Serial.print("\nconectando mqtt...");
   while (!client.connect("YinnConnect", "intentando", "intentando")) {
     Serial.print(".");
     delay(1000);
@@ -23,6 +23,7 @@ void connect() {
   Serial.println("\nmqtt conectado!");
 
   client.subscribe("actuadores/ventilador");
+  client.publish("dispositivos_activos/YinnConnect", "true");
   // client.unsubscribe("/hello");
 }
 
@@ -51,6 +52,7 @@ void setup() {
 }
 
 void loop() {
+  
   client.loop();
 
   if (!client.connected()) {
