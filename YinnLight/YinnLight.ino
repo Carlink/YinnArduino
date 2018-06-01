@@ -7,12 +7,13 @@
 EthernetClient net;
 MQTTClient client;
 
-byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xFA };
+byte mac[]    = {  0xDE, 0xED, 0xBA, 0xFE, 0xFE, 0xFE };
 unsigned long lastMillis = 0;
+IPAddress ip(192, 168, 8, 124);
 
 void connect() {
 //  Serial.print("conectando red...");
-  Ethernet.begin(mac);
+  Ethernet.begin(mac,ip);
 
 //  Serial.print("\nconectando mqtt...");
   while (!client.connect("YinnLight", "intentando", "intentando")) {
@@ -42,7 +43,7 @@ void setup() {
 
   // Note: Local domain names (e.g. "Computer.local" on OSX) are not supported by Arduino.
   // You need to set the IP address directly.
-  client.begin("192.168.1.100", 8000, net);
+  client.begin("192.168.8.150", 8000, net);
   client.onMessage(messageReceived);
 
   pinMode(PIN_CONNECT, OUTPUT);

@@ -1,22 +1,35 @@
 #include <SPI.h>
 #include <Ethernet.h>
 #include <PubSubClient.h>
-
+#include <DHT.h>;
 #include <Wire.h>
-#include "ClosedCube_HDC1080.h"
+//#include "ClosedCube_HDC1080.h"
 #include <MAX44009.h>
+
 #define PUBLISH_DELAY 15
 #define MEDICION_DELAY 150
+#define DHTPIN 7
+#define DHTTYPE DHT22
 
 // Update these with values suitable for your network.
 byte mac[]    = {  0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCF };
-IPAddress server(192, 168, 1, 100);
+
+IPAddress server(192, 168, 8, 150);
+IPAddress ip(192, 168, 8, 132);
+
+//IPAddress server(192, 168, 1, 72);
+//IPAddress ip(192, 168, 1, 180);
+
 
 int pirPin = 4;
 int ledPin = 13;
 int calibrationTime = 30;
+int chk;
+float hum;  //Stores humidity value
+float temp; //Stores temperature value
 
 // Callback function header
+DHT dht(DHTPIN, DHTTYPE);
 void callback(char* topic, byte* payload, unsigned int length);
 
 EthernetClient ethClient;
@@ -24,17 +37,19 @@ PubSubClient client(server, 8000, callback, ethClient);
 
 long lastReconnectAttempt = 0;
 
-ClosedCube_HDC1080 hdc1080;
+//ClosedCube_HDC1080 hdc1080;
 MAX44009 light;
 
 char tempbuffer[5];
 char humidbuffer[5];
 char lumibuffer[5];
 char movbuffer[5];
+char lluvbuffer[5];
 
 double Temperatura = 0;
 double Humedad = 0;
 double Luminosidad = 0;
+int Lluvia = 0;
 int Movimiento = 0;
 
 // Callback function
@@ -53,7 +68,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
 }
 
 boolean reconnect() {
-  if (client.connect("YinnSense")) {
+  if (client.connect("YinnWeather")) {
     // Once connected, publish an announcement...
 //    client.publish("outTopic","hello world");
     // ... and resubscribe
@@ -69,14 +84,15 @@ void setup()
   pinMode(pirPin, INPUT);
   pinMode(ledPin, OUTPUT);  
   
-  Ethernet.begin(mac);
-  hdc1080.begin(0x40);
+  Ethernet.begin(mac, ip);
+  //hdc1080.begin(0x40);
   light.begin();
+  dht.begin();
 
-  Serial.print("Manufacturer ID=0x");
-  Serial.println(hdc1080.readManufacturerId(), HEX); // 0x5449 ID of Texas Instruments
-  Serial.print("Device ID=0x");
-  Serial.println(hdc1080.readDeviceId(), HEX); // 0x1050 ID of the device
+  //Serial.print("Manufacturer ID=0x");
+  //Serial.println(hdc1080.readManufacturerId(), HEX); // 0x5449 ID of Texas Instruments
+  //Serial.print("Device ID=0x");
+  //Serial.println(hdc1080.readDeviceId(), HEX); // 0x1050 ID of the device
 
   delay(1500);
   lastReconnectAttempt = 0;
@@ -110,11 +126,13 @@ void loop()
   } else {
     // Client connected
 
-    getTempHum(HDC1080_RESOLUTION_8BIT, HDC1080_RESOLUTION_8BIT);
+    getTempHum();
     delay(MEDICION_DELAY);
     getLuminosidad();
     delay(MEDICION_DELAY);
     getMovimiento();
+    delay(MEDICION_DELAY);
+    getLLuvia();
     delay(MEDICION_DELAY);
     publishAll();
     delay(MEDICION_DELAY);
@@ -124,25 +142,24 @@ void loop()
 }
 
 void publishAll(){
-  client.publish("sensores_internos/temperatura", tempbuffer);
+  client.publish("sensores_externos/temperatura", tempbuffer);
   delay(PUBLISH_DELAY);
-  client.publish("sensores_internos/humedad", humidbuffer);
+  client.publish("sensores_externos/humedad", humidbuffer);
   delay(PUBLISH_DELAY);
-  client.publish("sensores_internos/luminosidad", lumibuffer);
+  client.publish("sensores_externos/luminosidad", lumibuffer);
   delay(PUBLISH_DELAY);
-  client.publish("sensores_internos/movimiento", movbuffer);
+  client.publish("sensores_externos/movimiento", movbuffer);
+  delay(PUBLISH_DELAY);
+  client.publish("sensores_externos/lluvia", lluvbuffer);
   delay(PUBLISH_DELAY);
 }
 
-void getTempHum(HDC1080_MeasurementResolution humidity, HDC1080_MeasurementResolution temperature) {
-  hdc1080.setResolution(humidity, temperature);
-  HDC1080_Registers reg = hdc1080.readRegister();
-  //printRegister(reg);
+void getTempHum() {
   
-  Temperatura = hdc1080.readTemperature();
+  Temperatura = dht.readTemperature();
   int intTemperatura = (int) Temperatura;
   snprintf(tempbuffer, 5, "%d", intTemperatura);
-  Humedad = hdc1080.readHumidity();
+  Humedad = dht.readHumidity();
   int intHumedad = (int) Humedad;
   snprintf(humidbuffer, 5, "%d", intHumedad);
 
@@ -167,17 +184,6 @@ void getLuminosidad() {
 void getMovimiento(){
 
      Movimiento = digitalRead(pirPin);
-//     int mov = 0;
-
-             
-
-//     if(Movimiento == 0){
-//      mov = 1;
-//     }
-//  
-//     if(Movimiento == 1){ 
-//      mov = 0;   
-//     }
 
      Serial.println("Movimiento: ");
      Serial.println(Movimiento);
@@ -185,3 +191,14 @@ void getMovimiento(){
      snprintf(movbuffer, 5, "%d", Movimiento);
    
 }
+
+void getLLuvia(){
+  Lluvia = analogRead(0);
+
+  Serial.println("Lluvia: ");
+  Serial.println(Lluvia);
+
+  snprintf(lluvbuffer, 5, "%d", Lluvia);
+}
+
+

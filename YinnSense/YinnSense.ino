@@ -10,7 +10,8 @@
 
 // Update these with values suitable for your network.
 byte mac[]    = {  0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC };
-IPAddress server(192, 168, 1, 100);
+IPAddress server(192, 168, 8, 150);
+IPAddress ip(192, 168, 8, 120);
 
 int pirPin = 4;
 int ledPin = 13;
@@ -91,8 +92,11 @@ void setup()
 //  }
 
   
-  
-
+  if (Ethernet.begin(mac) == 0){
+    Serial.println("Fallo DHCP");
+    for(;;)
+    ;
+    }
   
 }
 
